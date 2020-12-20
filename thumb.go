@@ -110,7 +110,7 @@ func procFile(path string, ddir string) error {
 			)
 
 			// Read frames and save first five frames to disk
-			dFrame := rand.Intn(700-50) + 50
+			dFrame := rand.Intn(200-50) + 50
 			frameNumber := 1
 			packet := avcodec.AvPacketAlloc()
 		outer:
