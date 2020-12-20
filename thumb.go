@@ -32,6 +32,7 @@ func main() {
 		if info.IsDir() {
 			return nil
 		}
+		log.Printf("Processing %s\b", path)
 		if err := procFile(path, *tdir); err != nil {
 			log.Printf("%s : %v\n", path, err)
 		}
