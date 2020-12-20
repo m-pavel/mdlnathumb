@@ -3,6 +3,9 @@ package main
 import (
 	"flag"
 	"fmt"
+	"image"
+	"image/color"
+	"image/jpeg"
 	"log"
 	"math/rand"
 	"os"
@@ -167,11 +170,24 @@ func procFile(path string, ddir string) error {
 func SaveFrame(ddir string, media string, frame *avutil.Frame, width, height, frameNumber int) {
 	// Open file
 
-	fileName := path.Join(ddir, media[:len(media)-len(filepath.Ext(media))]+".ppm")
+	fileName := path.Join(ddir, media[:len(media)-len(filepath.Ext(media))]+".jpg")
 	if err := os.MkdirAll(filepath.Dir(fileName), os.ModePerm); err != nil {
 		log.Println(err)
 		return
 	}
+
+	img := image.NewRGBA64(image.Rectangle{Min: image.Point{0, 0}, Max: image.Point{width, height}})
+	for y := 0; y < height; y++ {
+		data0 := avutil.Data(frame)[0]
+		startPos := uintptr(unsafe.Pointer(data0)) + uintptr(y)*uintptr(avutil.Linesize(frame)[0])
+		for i := 0; i < width*3; i += 3 {
+			r := *(*uint8)(unsafe.Pointer(startPos + uintptr(i)))
+			g := *(*uint8)(unsafe.Pointer(startPos + uintptr(i+1)))
+			b := *(*uint8)(unsafe.Pointer(startPos + uintptr(i+2)))
+			img.Set(i/3, y, color.RGBA{R: r, G: g, B: b, A: 1})
+		}
+	}
+
 	file, err := os.Create(fileName)
 	if err != nil {
 		log.Printf("Error making %v\n", err)
@@ -180,19 +196,26 @@ func SaveFrame(ddir string, media string, frame *avutil.Frame, width, height, fr
 	log.Printf("Saving to %s\n", fileName)
 	defer file.Close()
 
-	// Write header
-	header := fmt.Sprintf("P6\n%d %d\n255\n", width, height)
-	file.Write([]byte(header))
-
-	// Write pixel data
-	for y := 0; y < height; y++ {
-		data0 := avutil.Data(frame)[0]
-		buf := make([]byte, width*3)
-		startPos := uintptr(unsafe.Pointer(data0)) + uintptr(y)*uintptr(avutil.Linesize(frame)[0])
-		for i := 0; i < width*3; i++ {
-			element := *(*uint8)(unsafe.Pointer(startPos + uintptr(i)))
-			buf[i] = element
-		}
-		file.Write(buf)
+	if err := jpeg.Encode(file, img, nil); err != nil {
+		log.Println(err)
 	}
 }
+
+// ppm
+/*
+//header := fmt.Sprintf("P6\n%d %d\n255\n", width, height)
+//file.Write([]byte(header))
+
+// Write pixel data
+for y := 0; y < height; y++ {
+data0 := avutil.Data(frame)[0]
+buf := make([]byte, width*3)
+startPos := uintptr(unsafe.Pointer(data0)) + uintptr(y)*uintptr(avutil.Linesize(frame)[0])
+for i := 0; i < width*3; i++ {
+element := *(*uint8)(unsafe.Pointer(startPos + uintptr(i)))
+buf[i] = element
+}
+file.Write(buf)
+}
+
+*/
