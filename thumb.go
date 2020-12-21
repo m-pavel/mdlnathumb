@@ -55,7 +55,7 @@ func main() {
 			var resolution string
 			var rotation int
 			var thumbnail bool
-			var album_art int
+			var album_art *int
 			err = rows.Scan(&resolution, &rotation, &thumbnail, &album_art)
 			if err != nil {
 				log.Fatal(err)
