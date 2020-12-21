@@ -151,6 +151,21 @@ func procFile(path string, ddir string) (*string, error) {
 				pCodecCtx.Height()))
 			buffer := avutil.AvMalloc(numBytes)
 
+			defer func() {
+				if r := recover(); r != nil {
+					fmt.Println("Recovered in f", r)
+				}
+				// Free the RGB image
+				avutil.AvFree(buffer)
+				avutil.AvFrameFree(pFrameRGB)
+
+				// Free the YUV frame
+				avutil.AvFrameFree(pFrame)
+
+				// Close the codecs
+				pCodecCtx.AvcodecClose()
+				(*avcodec.Context)(unsafe.Pointer(pCodecCtxOrig)).AvcodecClose()
+			}()
 			// Assign appropriate parts of buffer to image planes in pFrameRGB
 			// Note that pFrameRGB is an AVFrame, but AVFrame is a superset
 			// of AVPicture
@@ -212,17 +227,6 @@ func procFile(path string, ddir string) (*string, error) {
 				// Free the packet that was allocated by av_read_frame
 				packet.AvFreePacket()
 			}
-
-			// Free the RGB image
-			avutil.AvFree(buffer)
-			avutil.AvFrameFree(pFrameRGB)
-
-			// Free the YUV frame
-			avutil.AvFrameFree(pFrame)
-
-			// Close the codecs
-			pCodecCtx.AvcodecClose()
-			(*avcodec.Context)(unsafe.Pointer(pCodecCtxOrig)).AvcodecClose()
 
 			// Stop after saving frames of first video straem
 			break
