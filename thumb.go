@@ -74,6 +74,11 @@ func main() {
 
 		if err := procFile(path, *tdir); err != nil {
 			log.Printf("%s : %v\n", path, err)
+		} else {
+			sqlStmt := fmt.Sprintf(`UPDATE DETAILS set THUMBNAIL=true where PATH = '%s'`, path)
+			if _, err := db.Exec(sqlStmt); err != nil {
+				log.Println(err)
+			}
 		}
 		return nil
 	})
