@@ -79,18 +79,20 @@ func main() {
 		if image, err := procFile(path, *tdir); err != nil {
 			log.Printf("%s : %v\n", path, err)
 		} else {
-			sqlStmt := fmt.Sprintf(`INSERT INTO ALBUM_ART (PATH) VALUES ('%s')`, *image)
-			if res, err := db.Exec(sqlStmt); err != nil {
-				log.Println(err)
-				return nil
-			} else {
-				if id, err := res.LastInsertId(); err != nil {
+			if image != nil {
+				sqlStmt := fmt.Sprintf(`INSERT INTO ALBUM_ART (PATH) VALUES ('%s')`, *image)
+				if res, err := db.Exec(sqlStmt); err != nil {
 					log.Println(err)
 					return nil
 				} else {
-					sqlStmt = fmt.Sprintf(`UPDATE DETAILS set THUMBNAIL=true,ALBUM_ART=%d where PATH = '%s'`, id, path)
-					if _, err := db.Exec(sqlStmt); err != nil {
+					if id, err := res.LastInsertId(); err != nil {
 						log.Println(err)
+						return nil
+					} else {
+						sqlStmt = fmt.Sprintf(`UPDATE DETAILS set THUMBNAIL=true,ALBUM_ART=%d where PATH = '%s'`, id, path)
+						if _, err := db.Exec(sqlStmt); err != nil {
+							log.Println(err)
+						}
 					}
 				}
 			}
