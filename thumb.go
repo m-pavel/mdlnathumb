@@ -45,7 +45,7 @@ func main() {
 			return nil
 		}
 		log.Printf("Processing %s\b", path)
-		sqlStmt := fmt.Sprintf(`select RESOLUTION,ROTATION,THUMBNAIL,ALBUM_ART from DETAILS where PATH = '%s'`, path)
+		sqlStmt := fmt.Sprintf(`select RESOLUTION,THUMBNAIL,ALBUM_ART from DETAILS where PATH = '%s'`, path)
 		rows, err := db.Query(sqlStmt)
 		if err != nil {
 			log.Println(err)
@@ -53,14 +53,14 @@ func main() {
 		}
 		for rows.Next() {
 			var resolution string
-			var rotation *int
+
 			var thumbnail bool
-			var album_art *int
-			err = rows.Scan(&resolution, &rotation, &thumbnail, &album_art)
+			var album_art int
+			err = rows.Scan(&resolution, &thumbnail, &album_art)
 			if err != nil {
 				log.Fatal(err)
 			}
-			fmt.Println(resolution, rotation, thumbnail, *album_art)
+			fmt.Println(resolution, thumbnail, album_art)
 		}
 		err = rows.Err()
 		if err != nil {
