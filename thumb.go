@@ -80,9 +80,14 @@ func main() {
 				log.Println(err)
 				return nil
 			} else {
-				sqlStmt = fmt.Sprintf(`UPDATE DETAILS set THUMBNAIL=true,ALBUM_ART=%d where PATH = '%s'`, res.LastInsertId(), image)
-				if _, err := db.Exec(sqlStmt); err != nil {
+				if id, err := res.LastInsertId(); err != nil {
 					log.Println(err)
+					return nil
+				} else {
+					sqlStmt = fmt.Sprintf(`UPDATE DETAILS set THUMBNAIL=true,ALBUM_ART=%d where PATH = '%s'`, id, image)
+					if _, err := db.Exec(sqlStmt); err != nil {
+						log.Println(err)
+					}
 				}
 			}
 		}
