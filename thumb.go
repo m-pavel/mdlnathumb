@@ -27,7 +27,7 @@ func main() {
 	dir := flag.String("sdir", ".", "Directory to process")
 	tdir := flag.String("tdir", "/var/db/minidlna/art_cache/", "Target directory")
 	dbfile := flag.String("db", "/var/db/minidlna/files.db", "Minidlna db")
-
+	force := flag.Bool("force", false, "Force recreate")
 	flag.Parse()
 	avformat.AvRegisterAll()
 	rand.Seed(time.Now().UTC().UnixNano())
@@ -51,22 +51,28 @@ func main() {
 			log.Println(err)
 			return nil
 		}
+		var thumbnail bool
+		var album_art int
+
 		for rows.Next() {
 			var resolution string
 
-			var thumbnail bool
-			var album_art int
 			err = rows.Scan(&resolution, &thumbnail, &album_art)
 			if err != nil {
-				log.Fatal(err)
+				log.Println(err)
+				return nil
 			}
 			fmt.Println(resolution, thumbnail, album_art)
 		}
 		err = rows.Err()
 		if err != nil {
-			log.Fatal(err)
+			log.Println(err)
+			return nil
 		}
-
+		if album_art != 0 && thumbnail && !*force {
+			log.Printf("Already have thumbnail %s. Skipping.", path)
+			return nil
+		}
 		if err != nil {
 			log.Printf("%q: %s\n", err, sqlStmt)
 			return nil
@@ -258,22 +264,3 @@ func SaveFrame(ddir string, media string, frame *avutil.Frame, width, height, fr
 	}
 	return &fileName, nil
 }
-
-// ppm
-/*
-//header := fmt.Sprintf("P6\n%d %d\n255\n", width, height)
-//file.Write([]byte(header))
-
-// Write pixel data
-for y := 0; y < height; y++ {
-data0 := avutil.Data(frame)[0]
-buf := make([]byte, width*3)
-startPos := uintptr(unsafe.Pointer(data0)) + uintptr(y)*uintptr(avutil.Linesize(frame)[0])
-for i := 0; i < width*3; i++ {
-element := *(*uint8)(unsafe.Pointer(startPos + uintptr(i)))
-buf[i] = element
-}
-file.Write(buf)
-}
-
-*/
