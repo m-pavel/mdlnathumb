@@ -56,13 +56,11 @@ func main() {
 
 		for rows.Next() {
 			var resolution string
-
 			err = rows.Scan(&resolution, &thumbnail, &album_art)
 			if err != nil {
 				log.Println(err)
 				return nil
 			}
-			fmt.Println(resolution, thumbnail, album_art)
 		}
 		err = rows.Err()
 		if err != nil {
