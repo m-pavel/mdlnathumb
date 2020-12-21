@@ -10,8 +10,10 @@ import (
 	"log"
 	"math/rand"
 	"os"
+	"os/signal"
 	"path"
 	"path/filepath"
+	"syscall"
 	"time"
 	"unsafe"
 
@@ -31,6 +33,8 @@ func main() {
 	flag.Parse()
 	avformat.AvRegisterAll()
 	rand.Seed(time.Now().UTC().UnixNano())
+	signal.Ignore(syscall.SIGABRT)
+	signal.Ignore(syscall.SIGBUS)
 
 	log.SetFlags(log.Lshortfile | log.Ldate | log.Ltime)
 
@@ -212,6 +216,7 @@ func procFile(path string, ddir string) (*string, error) {
 							// Convert the image from its native format to RGB
 							log.Println(pFrame, pFrameRGB)
 							log.Println(avutil.Linesize(pFrameRGB))
+							panic("AAA")
 							swscale.SwsScale2(swsCtx, avutil.Data(pFrame),
 								avutil.Linesize(pFrame), 0, pCodecCtx.Height(),
 								avutil.Data(pFrameRGB), avutil.Linesize(pFrameRGB))
