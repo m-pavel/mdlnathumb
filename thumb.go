@@ -155,6 +155,7 @@ func procFile(path string, ddir string) (*string, error) {
 				if r := recover(); r != nil {
 					fmt.Println("Recovered in f", r)
 				}
+				log.Println("cleanup")
 				// Free the RGB image
 				avutil.AvFree(buffer)
 				avutil.AvFrameFree(pFrameRGB)
