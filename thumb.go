@@ -84,7 +84,7 @@ func main() {
 					log.Println(err)
 					return nil
 				} else {
-					sqlStmt = fmt.Sprintf(`UPDATE DETAILS set THUMBNAIL=true,ALBUM_ART=%d where PATH = '%s'`, id, image)
+					sqlStmt = fmt.Sprintf(`UPDATE DETAILS set THUMBNAIL=true,ALBUM_ART=%d where PATH = '%s'`, id, path)
 					if _, err := db.Exec(sqlStmt); err != nil {
 						log.Println(err)
 					}
