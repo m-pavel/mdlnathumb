@@ -72,30 +72,37 @@ func main() {
 			return nil
 		}
 
-		if err := procFile(path, *tdir); err != nil {
+		if image, err := procFile(path, *tdir); err != nil {
 			log.Printf("%s : %v\n", path, err)
 		} else {
-			sqlStmt := fmt.Sprintf(`UPDATE DETAILS set THUMBNAIL=true where PATH = '%s'`, path)
-			if _, err := db.Exec(sqlStmt); err != nil {
+			sqlStmt := fmt.Sprintf(`INSERT INTO ALBUM_ART (PATH) VALUES ('%s')`, image)
+			if res, err := db.Exec(sqlStmt); err != nil {
 				log.Println(err)
+				return nil
+			} else {
+				sqlStmt = fmt.Sprintf(`UPDATE DETAILS set THUMBNAIL=true,ALBUM_ART=%d where PATH = '%s'`, res.LastInsertId(), image)
+				if _, err := db.Exec(sqlStmt); err != nil {
+					log.Println(err)
+				}
 			}
 		}
 		return nil
 	})
 }
 
-func procFile(path string, ddir string) error {
+func procFile(path string, ddir string) (*string, error) {
 	ctx := avformat.AvformatAllocContext()
 	// ffmpeg -i input.mp4 -ss 00:00:01.000 -vframes 1 output.png
 	if avformat.AvformatOpenInput(&ctx, path, nil, nil) != 0 {
-		return fmt.Errorf("Error: Couldn't open file %s", path)
+		return nil, fmt.Errorf("Error: Couldn't open file %s", path)
 	}
 	defer ctx.AvformatCloseInput()
 	if ctx.AvformatFindStreamInfo(nil) < 0 {
-		return fmt.Errorf("Error: Couldn't find stream information")
+		return nil, fmt.Errorf("Error: Couldn't find stream information")
 	}
 	//ctx.AvDumpFormat(0, path, 0)
-
+	var image *string
+	var err error
 	// Find the first video stream
 	for i := 0; i < int(ctx.NbStreams()); i++ {
 		switch ctx.Streams()[i].CodecParameters().AvCodecGetType() {
@@ -106,17 +113,17 @@ func procFile(path string, ddir string) error {
 			// Find the decoder for the video stream
 			pCodec := avcodec.AvcodecFindDecoder(avcodec.CodecId(pCodecCtxOrig.GetCodecId()))
 			if pCodec == nil {
-				return fmt.Errorf("Unsupported codec")
+				return nil, fmt.Errorf("Unsupported codec")
 			}
 			// Copy context
 			pCodecCtx := pCodec.AvcodecAllocContext3()
 			if pCodecCtx.AvcodecCopyContext((*avcodec.Context)(unsafe.Pointer(pCodecCtxOrig))) != 0 {
-				return fmt.Errorf("Couldn't copy codec context")
+				return nil, fmt.Errorf("Couldn't copy codec context")
 			}
 
 			// Open codec
 			if pCodecCtx.AvcodecOpen2(pCodec, nil) < 0 {
-				return fmt.Errorf("Could not open codec")
+				return nil, fmt.Errorf("Could not open codec")
 			}
 
 			// Allocate video frame
@@ -125,7 +132,7 @@ func procFile(path string, ddir string) error {
 			// Allocate an AVFrame structure
 			pFrameRGB := avutil.AvFrameAlloc()
 			if pFrameRGB == nil {
-				return fmt.Errorf("Unable to allocate RGB Frame")
+				return nil, fmt.Errorf("Unable to allocate RGB Frame")
 			}
 
 			// Determine required buffer size and allocate buffer
@@ -172,7 +179,7 @@ func procFile(path string, ddir string) error {
 							break
 						} else if response < 0 {
 							log.Println(response)
-							return fmt.Errorf("Error while receiving a frame from the decoder: %s\n", avutil.ErrorFromCode(response))
+							return nil, fmt.Errorf("Error while receiving a frame from the decoder: %s\n", avutil.ErrorFromCode(response))
 						}
 						if frameNumber == dFrame {
 							// Convert the image from its native format to RGB
@@ -182,7 +189,9 @@ func procFile(path string, ddir string) error {
 
 							// Save the frame to disk
 							log.Printf("Writing frame %d\n", frameNumber)
-							SaveFrame(ddir, path, pFrameRGB, pCodecCtx.Width(), pCodecCtx.Height(), frameNumber)
+							if image, err = SaveFrame(ddir, path, pFrameRGB, pCodecCtx.Width(), pCodecCtx.Height(), frameNumber); err != nil {
+								log.Println(err)
+							}
 							break outer
 						}
 						frameNumber++
@@ -210,15 +219,14 @@ func procFile(path string, ddir string) error {
 		default:
 		}
 	}
-	return nil
+	return image, nil
 }
-func SaveFrame(ddir string, media string, frame *avutil.Frame, width, height, frameNumber int) {
+func SaveFrame(ddir string, media string, frame *avutil.Frame, width, height, frameNumber int) (*string, error) {
 	// Open file
 
 	fileName := path.Join(ddir, media[:len(media)-len(filepath.Ext(media))]+".jpg")
 	if err := os.MkdirAll(filepath.Dir(fileName), os.ModePerm); err != nil {
-		log.Println(err)
-		return
+		return nil, err
 	}
 
 	img := image.NewRGBA64(image.Rectangle{Min: image.Point{0, 0}, Max: image.Point{width, height}})
@@ -235,15 +243,15 @@ func SaveFrame(ddir string, media string, frame *avutil.Frame, width, height, fr
 
 	file, err := os.Create(fileName)
 	if err != nil {
-		log.Printf("Error making %v\n", err)
-		return
+		return nil, err
 	}
 	log.Printf("Saving to %s\n", fileName)
 	defer file.Close()
 
 	if err := jpeg.Encode(file, img, nil); err != nil {
-		log.Println(err)
+		return nil, err
 	}
+	return &fileName, nil
 }
 
 // ppm
