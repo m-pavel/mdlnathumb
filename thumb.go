@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"flag"
 	"fmt"
 	"image"
@@ -18,21 +19,57 @@ import (
 	"github.com/giorgisio/goav/avformat"
 	"github.com/giorgisio/goav/avutil"
 	"github.com/giorgisio/goav/swscale"
+
+	_ "github.com/mattn/go-sqlite3"
 )
 
 func main() {
 	dir := flag.String("sdir", ".", "Directory to process")
 	tdir := flag.String("tdir", "/var/db/minidlna/art_cache/", "Target directory")
+	dbfile := flag.String("db", "/var/db/minidlna/files.db", "Minidlna db")
+
 	flag.Parse()
 	avformat.AvRegisterAll()
 	rand.Seed(time.Now().UTC().UnixNano())
 
 	log.SetFlags(log.Lshortfile | log.Ldate | log.Ltime)
+
+	db, err := sql.Open("sqlite3", *dbfile)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+
 	filepath.Walk(*dir, func(path string, info os.FileInfo, err error) error {
 		if info.IsDir() {
 			return nil
 		}
 		log.Printf("Processing %s\b", path)
+		sqlStmt := fmt.Sprintf(`select RESOLUTION,ROTATION,THUMBNAIL,ALBUM_ART from DETAILS where PATH = '%s'`, path)
+		rows, err := db.Query(sqlStmt)
+		if err != nil {
+			log.Println(err)
+			return nil
+		}
+		for rows.Next() {
+			var id int
+			var name string
+			err = rows.Scan(&id, &name)
+			if err != nil {
+				log.Fatal(err)
+			}
+			fmt.Println(id, name)
+		}
+		err = rows.Err()
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		if err != nil {
+			log.Printf("%q: %s\n", err, sqlStmt)
+			return nil
+		}
+
 		if err := procFile(path, *tdir); err != nil {
 			log.Printf("%s : %v\n", path, err)
 		}
