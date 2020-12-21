@@ -194,7 +194,8 @@ func procFile(path string, ddir string) (*string, error) {
 						}
 						if frameNumber == dFrame {
 							// Convert the image from its native format to RGB
-							fmt.Println(pFrame, pFrameRGB)
+							log.Println(pFrame, pFrameRGB)
+							log.Println(avutil.Linesize(pFrameRGB))
 							swscale.SwsScale2(swsCtx, avutil.Data(pFrame),
 								avutil.Linesize(pFrame), 0, pCodecCtx.Height(),
 								avutil.Data(pFrameRGB), avutil.Linesize(pFrameRGB))
