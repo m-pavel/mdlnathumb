@@ -52,13 +52,15 @@ func main() {
 			return nil
 		}
 		for rows.Next() {
-			var id int
-			var name string
-			err = rows.Scan(&id, &name)
+			var resolution string
+			var rotation int
+			var thumbnail bool
+			var album_art int
+			err = rows.Scan(&resolution, &rotation, &thumbnail, &album_art)
 			if err != nil {
 				log.Fatal(err)
 			}
-			fmt.Println(id, name)
+			fmt.Println(resolution, rotation, thumbnail, album_art)
 		}
 		err = rows.Err()
 		if err != nil {
