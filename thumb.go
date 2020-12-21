@@ -60,7 +60,7 @@ func main() {
 			if err != nil {
 				log.Fatal(err)
 			}
-			fmt.Println(resolution, rotation, thumbnail, album_art)
+			fmt.Println(resolution, rotation, thumbnail, *album_art)
 		}
 		err = rows.Err()
 		if err != nil {
