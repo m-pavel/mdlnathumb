@@ -75,7 +75,7 @@ func main() {
 		if image, err := procFile(path, *tdir); err != nil {
 			log.Printf("%s : %v\n", path, err)
 		} else {
-			sqlStmt := fmt.Sprintf(`INSERT INTO ALBUM_ART (PATH) VALUES ('%s')`, image)
+			sqlStmt := fmt.Sprintf(`INSERT INTO ALBUM_ART (PATH) VALUES ('%s')`, *image)
 			if res, err := db.Exec(sqlStmt); err != nil {
 				log.Println(err)
 				return nil
