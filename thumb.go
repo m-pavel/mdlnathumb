@@ -53,7 +53,7 @@ func main() {
 		}
 		for rows.Next() {
 			var resolution string
-			var rotation int
+			var rotation *int
 			var thumbnail bool
 			var album_art *int
 			err = rows.Scan(&resolution, &rotation, &thumbnail, &album_art)
